@@ -154,3 +154,4 @@ This sequencing ensures correct timing with synchronous RAM and a registered ALU
 ## 📜 License
 
 This project is released under the **MIT License** and is free for academic and educational use.
+....

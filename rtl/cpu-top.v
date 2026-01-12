@@ -18,8 +18,8 @@ module cpu_top (
     wire [3:0]  alu_out; 
     wire        alu_cout; 
 
-   wire ram_csn = ~(mem_rd | mem_wr); // keep
-   wire ram_rwn = mem_rd;             // keep
+   wire ram_csn = ~(mem_rd | mem_wr); 
+   wire ram_rwn = mem_rd;             
 
     fsm u_fsm ( 
         .clk        (clk), 

@@ -20,9 +20,8 @@ module fsm (
     input  wire [3:0]  alu_out
 );
 
-    // -------------------------
     // State encoding
-    // -------------------------
+
     parameter INIT      = 3'b000;
     parameter FETCH     = 3'b001;
     parameter WAIT_RD   = 3'b010;
@@ -31,15 +30,10 @@ module fsm (
     parameter STORE     = 3'b101;
 
     reg [2:0] state, next_state;
-
-    // -------------------------
-    // ALU result register (NEW)
-    // -------------------------
     reg [3:0] alu_result_reg;
 
-    // -------------------------
     // State register
-    // -------------------------
+
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n)
             state <= INIT;
@@ -47,9 +41,8 @@ module fsm (
             state <= next_state;
     end
 
-    // -------------------------
     // Next-state logic
-    // -------------------------
+
     always @(*) begin
         case (state)
             INIT:     next_state = FETCH;
@@ -62,9 +55,8 @@ module fsm (
         endcase
     end
 
-    // -------------------------
-    // Latch ALU output (NEW)
-    // -------------------------
+    // Latch ALU output
+
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n)
             alu_result_reg <= 4'b0000;
@@ -72,9 +64,8 @@ module fsm (
             alu_result_reg <= alu_out;
     end
 
-    // -------------------------
     // Output / control logic
-    // -------------------------
+
     always @(*) begin
         // defaults
         mem_rd    = 1'b0;

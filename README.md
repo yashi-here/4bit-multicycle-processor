@@ -39,7 +39,7 @@ The processor is divided into two main subsystems:
 
 ### 📊 Block Diagram
 
-![Architecture](docs/architecture.png)
+![Architecture](docs/architecture_block_diagram.jpeg)
 
 ---
 

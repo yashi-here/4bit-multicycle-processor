@@ -1,5 +1,4 @@
 `timescale 1ns / 1ps
-
 module fsm (
     input  wire        clk,
     input  wire        reset_n,
@@ -17,11 +16,14 @@ module fsm (
     output reg  [3:0]  alu_a,
     output reg  [3:0]  alu_b,
     output reg  [3:0]  alu_sel,
-    input  wire [3:0]  alu_out
+    input  wire [3:0]  alu_out,
+
+    output reg         pc_en
 );
 
+    // =========================
     // State encoding
-
+    // =========================
     parameter INIT      = 3'b000;
     parameter FETCH     = 3'b001;
     parameter WAIT_RD   = 3'b010;
@@ -30,10 +32,15 @@ module fsm (
     parameter STORE     = 3'b101;
 
     reg [2:0] state, next_state;
+
+    // =========================
+    // ALU result register
+    // =========================
     reg [3:0] alu_result_reg;
 
+    // =========================
     // State register
-
+    // =========================
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n)
             state <= INIT;
@@ -41,8 +48,9 @@ module fsm (
             state <= next_state;
     end
 
+    // =========================
     // Next-state logic
-
+    // =========================
     always @(*) begin
         case (state)
             INIT:     next_state = FETCH;
@@ -55,8 +63,9 @@ module fsm (
         endcase
     end
 
+    // =========================
     // Latch ALU output
-
+    // =========================
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n)
             alu_result_reg <= 4'b0000;
@@ -64,10 +73,11 @@ module fsm (
             alu_result_reg <= alu_out;
     end
 
+    // =========================
     // Output / control logic
-
+    // =========================
     always @(*) begin
-        // defaults
+        // -------- DEFAULTS (VERY IMPORTANT) --------
         mem_rd    = 1'b0;
         mem_wr    = 1'b0;
         mem_addr  = 4'b0000;
@@ -77,13 +87,21 @@ module fsm (
         alu_b     = 4'b0000;
         alu_sel   = 4'b0000;
 
+        pc_en     = 1'b0;   // ? FIXED (no latch)
+
         case (state)
 
+            // -------------------------
+            // READ operand from RAM
+            // -------------------------
             FETCH: begin
                 mem_rd   = 1'b1;
                 mem_addr = op1;
             end
 
+            // -------------------------
+            // ALU operation
+            // -------------------------
             EXECUTE: begin
                 alu_a = mem_rdata;
                 alu_b = op2;
@@ -108,10 +126,15 @@ module fsm (
                 endcase
             end
 
+            // -------------------------
+            // WRITE result back
+            // -------------------------
             STORE: begin
                 mem_wr    = 1'b1;
                 mem_addr  = op1;
-                mem_wdata = alu_result_reg; // ? FIXED
+                mem_wdata = alu_result_reg;
+
+                pc_en     = 1'b1;   // ? increment PC ONLY here
             end
 
         endcase

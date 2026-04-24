@@ -1,157 +1,193 @@
-# 4-bit Multi-Cycle Processor (Verilog)
+# 🧠 4-bit Multicycle Processor (Verilog RTL)
 
-This repository contains the design and verification of a **4-bit multi-cycle processor**
-implemented in **Verilog HDL**.  
-The project demonstrates fundamental **CPU microarchitecture concepts** such as
-FSM-based control, registered ALU operation, synchronous memory access, and multi-cycle
-instruction execution.
+This repository presents the design, implementation, and verification of a **4-bit multicycle processor** using **Verilog HDL**, demonstrating fundamental CPU microarchitecture concepts including FSM-based control, synchronous memory interaction, and cycle-accurate execution.
 
-This processor is intended for **educational and learning purposes**.
+The processor follows a **PC-driven instruction execution model** with a **memory-operand architecture**, making it both educational and structurally aligned with real-world processor design principles.
 
 ---
 
-## 🔧 Architecture Overview
+## 🔍 Key Features
 
-The processor consists of the following major blocks:
+- 🔄 Multicycle instruction execution (5-cycle pipeline)
+- 🧩 FSM-based control unit (cycle-accurate sequencing)
+- 🧮 Registered ALU supporting 16 operations
+- 💾 16×4 synchronous RAM for data storage
+- 📜 ROM-based instruction memory with PC-driven fetch
+- 🔌 Modular RTL design (clean datapath–control separation)
+- 🧪 Verified via waveform-level simulation
+- ⚡ FPGA-ready architecture (Vivado compatible)
 
-- **Instruction Decoder (FSM)**  
-  Controls instruction execution over multiple clock cycles.
-- **4-bit Registered ALU**  
-  Supports 16 arithmetic and logical operations with a registered output.
-- **16 × 4 Synchronous RAM**  
-  Used for operand storage and result write-back.
-- **CPU Top Module**  
-  Integrates the FSM, ALU, and RAM into a complete processor datapath.
+---
 
-The design follows a **multi-cycle execution model**, where each instruction is completed
-over several clock cycles.
+## 🏗️ Architecture Overview
+
+The processor is divided into two main subsystems:
+
+### 🔹 Instruction Flow
+- Program Counter (PC)
+- Instruction Memory (ROM)
+- Instruction Register (IR)
+- Instruction Decoder
+
+### 🔹 Datapath + Control
+- FSM Control Unit
+- Registered ALU
+- Data Memory (RAM)
+- ALU Result Register
+
+---
+
+### 📊 Block Diagram
+
+![Architecture](docs/architecture.png)
+
+---
+
+### 🔁 Execution Flow
+
+PC → ROM → IR → Decoder → FSM
+↓
+RAM ↔ ALU → Result Register → RAM
 
 ---
 
 ## 🧾 Instruction Set Architecture (ISA)
 
-### Instruction Format
+### 📌 Instruction Format
 
-Each instruction uses a fixed 3-field format:
+[ opcode (4 bits) | op1 (4 bits) | op2 (4 bits) ]
 
-opcode op1 op2
-[3:0] [3:0] [3:0]
+| Field   | Description |
+|--------|------------|
+| opcode | ALU operation selector |
+| op1    | Memory address (source & destination) |
+| op2    | Immediate operand |
 
+---
 
-- **opcode** : Selects the ALU operation  
-- **op1**    : Data memory address (source and destination)  
-- **op2**    : Immediate operand / secondary ALU input  
-
-### Instruction Semantics
-
-For every instruction:
+### ⚙️ Execution Semantics
 
 MEM[op1] ← ALU( MEM[op1], op2 )
 
-
 Where:
+
 - `A = MEM[op1]`
 - `B = op2`
 
-This is a **memory-operand architecture**.
+👉 This defines a **memory-operand architecture**, eliminating the need for a register file.
 
 ---
 
-### Supported ALU Instructions
+## 🧮 ALU Operations (16 Supported)
 
-| Opcode | Mnemonic | Operation |
-|------|---------|-----------|
-| 0000 | PASS | MEM[op1] ← A |
-| 0001 | INC | MEM[op1] ← A + 1 |
-| 0010 | ADD | MEM[op1] ← A + B |
-| 0011 | ADDC | MEM[op1] ← A + B + 1 |
-| 0100 | ADDNB | MEM[op1] ← A + ~B |
-| 0101 | SUB | MEM[op1] ← A − B |
-| 0110 | DEC | MEM[op1] ← A − 1 |
-| 0111 | MOV | MEM[op1] ← A |
-| 1000 | OR | MEM[op1] ← A OR B |
-| 1001 | XOR | MEM[op1] ← A XOR B |
-| 1010 | AND | MEM[op1] ← A AND B |
-| 1011 | NOT | MEM[op1] ← NOT A |
-| 1100 | NAND | MEM[op1] ← A NAND B |
-| 1101 | XNOR | MEM[op1] ← A XNOR B |
-| 1110 | SHL | MEM[op1] ← A << 1 |
-| 1111 | SHR | MEM[op1] ← A >> 1 |
+| Opcode | Operation |
+|--------|----------|
+| 0000 | PASS A |
+| 0001 | A + 1 |
+| 0010 | A + B |
+| 0011 | A + B + 1 |
+| 0100 | A + ~B |
+| 0101 | A − B |
+| 0110 | A − 1 |
+| 0111 | MOV |
+| 1000 | OR |
+| 1001 | XOR |
+| 1010 | AND |
+| 1011 | NOT |
+| 1100 | NAND |
+| 1101 | XNOR |
+| 1110 | SHL |
+| 1111 | SHR |
 
 ---
 
-## 🔄 FSM-Based Instruction Execution
+## 🔄 FSM-Based Control
 
-The processor uses a **finite state machine (FSM)** to control instruction execution.
+Instruction execution is governed by a **finite state machine (FSM)**.
 
-### FSM States
+### 📌 States
 
-| State Code | State Name | Function |
-|-----------|-----------|----------|
-| 000 | INIT | Reset and initialization |
-| 001 | FETCH | Read operand from memory |
-| 010 | WAIT_RD | Wait for synchronous RAM read |
-| 011 | EXECUTE | Apply ALU operation |
-| 100 | WAIT_ALU | Wait for registered ALU output |
-| 101 | STORE | Write result back to memory |
+| State | Name | Description |
+|------|------|------------|
+| 000 | INIT | Reset / initialization |
+| 001 | FETCH | Read operand from RAM |
+| 010 | WAIT_RD | Wait for memory latency |
+| 011 | EXECUTE | Perform ALU operation |
+| 100 | WAIT_ALU | Wait for ALU output |
+| 101 | STORE | Write result back |
 
-### Instruction Timing
+---
 
-Each instruction completes in **5 clock cycles**:
+### ⏱️ Instruction Timing
+
+Each instruction executes in **5 clock cycles**:
 
 FETCH → WAIT_RD → EXECUTE → WAIT_ALU → STORE
 
-
-This sequencing ensures correct timing with synchronous RAM and a registered ALU.
 
 ---
 
 ## 🧪 Verification
 
-- A **cycle-accurate testbench** verifies all 16 ALU operations.
-- FSM sequencing, ALU timing, and memory write-back are validated using waveform analysis.
-- RAM is initialized to zero for simulation purposes.
-- One representative waveform demonstrates correct multi-cycle execution.
+- ✔ All 16 ALU operations verified
+- ✔ FSM sequencing validated cycle-by-cycle
+- ✔ Memory read/write correctness confirmed
+- ✔ Waveform-level simulation ensures timing accuracy
+
+### 📈 Example Waveform
+
+![Waveform](waveforms/waveform_overview.png)
+
+---
+
+## 🧠 Design Highlights
+
+- ✅ **Registered ALU output** ensures timing stability
+- ✅ **Synchronous RAM** requires latency-aware FSM
+- ✅ **Multicycle execution** reduces hardware complexity
+- ✅ **Explicit control signals** prevent race conditions
+- ✅ Clean separation of **control vs datapath**
 
 ---
 
 ## 📁 Repository Structure
-
 4bit-multicycle-processor/
 │
-├── rtl/ # RTL source files
-├── tb/ # Testbench
-├── docs/ # Architecture diagrams and schematics
-├── waveforms/ # Simulation waveform screenshot
+├── rtl/ # Verilog RTL modules
+├── docs/ # Architecture diagrams
+├── waveforms/ # Simulation outputs
 └── README.md
-
----
-
-## 🧠 Architectural Notes
-
-- The ALU output is **registered** to align with synchronous RAM write-back.
-- Data memory is **fully synchronous** (read and write on clock edge).
-- The multi-cycle approach simplifies control logic and avoids timing hazards.
 
 ---
 
 ## 🛠 Tools Used
 
 - Verilog HDL
-- Vivado (RTL elaboration and simulation)
-- Behavioral simulation with waveform inspection
+- Xilinx Vivado (Simulation & Synthesis)
+- Behavioral simulation with waveform analysis
 
 ---
 
-## 📌 Scope and Limitations
+## ⚠️ Scope & Limitations
 
-- No program counter or instruction memory is included.
-- Instructions are supplied externally (via testbench).
-- The design focuses on **datapath and control concepts**, not full CPU features.
+- No pipelining or hazard handling
+- No branching or control flow instructions
+- Limited to 4-bit data width
+- Designed for **educational and research demonstration**
+
+---
+
+## 🚀 Future Work
+
+- Add branching and jump instructions
+- Extend to 8-bit / 16-bit architecture
+- Introduce pipelining
+- Integrate register file
+- ASIC flow (RTL → GDSII)
 
 ---
 
 ## 📜 License
 
-This project is released under the **MIT License** and is free for academic and educational use.
-....
+This project is released under the **MIT License** and is intended for academic and educational use.
+
